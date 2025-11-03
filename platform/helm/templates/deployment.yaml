@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ultra-devbox.fullname" . }}-platform
+  labels:
+    {{- include "ultra-devbox.labels" . | nindent 4 }}
+    app.kubernetes.io/component: platform
+spec:
+  {{- if not .Values.platform.autoscaling.enabled }}
+  replicas: {{ .Values.platform.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "ultra-devbox.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: platform
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.platform.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "ultra-devbox.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: platform
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "ultra-devbox.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.security.securityContext | nindent 8 }}
+      containers:
+        - name: platform
+          securityContext:
+            {{- toYaml .Values.security.securityContext | nindent 12 }}
+          image: "{{ .Values.platform.image.registry }}/{{ .Values.platform.image.repository }}:{{ .Values.platform.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.platform.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.platform.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "{{ .Values.platform.service.targetPort }}"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ultra-devbox.fullname" . }}-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ultra-devbox.fullname" . }}-secrets
+                  key: redis-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ultra-devbox.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ultra-devbox.fullname" . }}-secrets
+                  key: stripe-secret-key
+            - name: GITHUB_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ultra-devbox.fullname" . }}-secrets
+                  key: github-client-id
+            - name: GITHUB_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ultra-devbox.fullname" . }}-secrets
+                  key: github-client-secret
+            {{- if .Values.ai.ollama.enabled }}
+            - name: OLLAMA_URL
+              value: "http://{{ include "ultra-devbox.fullname" . }}-ollama.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.ai.ollama.service.port }}"
+            {{- end }}
+            {{- if .Values.development.enabled }}
+            - name: DEBUG
+              value: "true"
+            {{- end }}
+          resources:
+            {{- toYaml .Values.platform.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+            - name: tmp
+              mountPath: /tmp
+        {{- if .Values.ai.ollama.enabled }}
+        - name: ollama-proxy
+          image: nginx:alpine
+          ports:
+            - name: ollama
+              containerPort: 11434
+              protocol: TCP
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+        {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "ultra-devbox.fullname" . }}-config
+        {{- if .Values.ai.ollama.enabled }}
+        - name: nginx-config
+          configMap:
+            name: {{ include "ultra-devbox.fullname" . }}-nginx-config
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.platform.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.platform.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.platform.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

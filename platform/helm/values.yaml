@@ -1,0 +1,301 @@
+# Ultra DevBox Helm Chart Values
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Ultra DevBox platform configuration
+platform:
+  # Main platform image
+  image:
+    registry: docker.io
+    repository: ultra-devbox/platform
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  # Replica count
+  replicaCount: 2
+  
+  # Resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3000
+    annotations: {}
+  
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: "traefik"
+    annotations:
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: ultra-devbox.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ultra-devbox-tls
+        hosts:
+          - ultra-devbox.example.com
+
+# Workspace management
+workspace:
+  # Default workspace image
+  image:
+    registry: docker.io
+    repository: ultra-devbox/workspace
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  # Resource defaults
+  defaultResources:
+    cpu: "2"
+    memory: "4Gi"
+    disk: "20Gi"
+    gpu: ""
+  
+  # Maximum resources per user
+  maxResources:
+    cpu: "8"
+    memory: "16Gi"
+    disk: "100Gi"
+    gpu: "1"
+  
+  # Workspace lifecycle
+  lifecycle:
+    # Auto-shutdown after inactivity (minutes)
+    idleTimeout: 30
+    # Maximum workspace lifetime (hours)
+    maxLifetime: 24
+    # Cleanup interval (minutes)
+    cleanupInterval: 5
+  
+  # Storage
+  storage:
+    # Persistent volume for workspace data
+    persistentVolume:
+      enabled: true
+      size: "20Gi"
+      storageClass: ""
+      accessModes:
+        - ReadWriteOnce
+    
+    # Docker-in-Docker storage
+    dockerStorage:
+      enabled: true
+      size: "10Gi"
+      storageClass: ""
+
+# AI/LLM configuration
+ai:
+  # Ollama configuration
+  ollama:
+    enabled: true
+    image:
+      registry: docker.io
+      repository: ollama/ollama
+      tag: "latest"
+    
+    # Default models to pull
+    defaultModels:
+      - "codellama:13b-instruct"
+      - "starcoder:15b"
+    
+    # Model storage
+    storage:
+      size: "50Gi"
+      storageClass: ""
+    
+    # Resource limits for Ollama
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+        nvidia.com/gpu: 1
+      requests:
+        cpu: 1000m
+        memory: 4Gi
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 11434
+
+# Authentication & Authorization
+auth:
+  # GitHub OAuth
+  github:
+    enabled: true
+    clientId: ""
+    clientSecret: ""
+    callbackUrl: "https://ultra-devbox.example.com/auth/github/callback"
+  
+  # SSO configuration
+  sso:
+    enabled: false
+    provider: "" # oidc, saml, etc.
+    config: {}
+  
+  # Session management
+  session:
+    secret: "" # Generate with: openssl rand -base64 32
+    timeout: 24h
+    renewal: 1h
+
+# Billing & Quotas
+billing:
+  enabled: true
+  
+  # Stripe configuration
+  stripe:
+    secretKey: ""
+    webhookSecret: ""
+    priceIds:
+      starter: "price_..."
+      pro: "price_..."
+      enterprise: "price_..."
+  
+  # Quota management
+  quotas:
+    # Free tier
+    free:
+      maxWorkspaces: 1
+      maxCpu: 2
+      maxMemory: "4Gi"
+      maxDisk: "20Gi"
+      maxGpu: 0
+    
+    # Pro tier
+    pro:
+      maxWorkspaces: 5
+      maxCpu: 4
+      maxMemory: "8Gi"
+      maxDisk: "50Gi"
+      maxGpu: 1
+    
+    # Enterprise tier
+    enterprise:
+      maxWorkspaces: -1 # Unlimited
+      maxCpu: 8
+      maxMemory: "16Gi"
+      maxDisk: "100Gi"
+      maxGpu: 2
+
+# Database configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "change-me"
+    database: "ultra_devbox"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "change-me"
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+# Monitoring & Observability
+monitoring:
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+  
+  # Grafana dashboard
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+  
+  # Logging
+  logging:
+    level: "info"
+    format: "json"
+
+# Networking
+networking:
+  # Network policies
+  networkPolicy:
+    enabled: true
+    
+  # Service mesh (Istio)
+  serviceMesh:
+    enabled: false
+
+# Security
+security:
+  # Pod Security Policy
+  podSecurityPolicy:
+    enabled: true
+  
+  # RBAC
+  rbac:
+    enabled: true
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+# Backup & Recovery
+backup:
+  enabled: true
+  schedule: "0 2 * * *" # Daily at 2 AM
+  retention: 7 # days
+  storage:
+    type: "s3"
+    bucket: "ultra-devbox-backups"
+    region: "us-west-2"
+
+# Development settings
+development:
+  enabled: false
+  debug: true
+  hotReload: true

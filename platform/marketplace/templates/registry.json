@@ -1,0 +1,287 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2024-01-15T10:00:00Z",
+  "categories": [
+    {
+      "id": "development",
+      "name": "Development Environments",
+      "description": "Complete development setups for various languages and frameworks"
+    },
+    {
+      "id": "ai",
+      "name": "AI & Machine Learning",
+      "description": "Templates with AI/ML tools and frameworks pre-configured"
+    },
+    {
+      "id": "database",
+      "name": "Database & Data",
+      "description": "Templates with databases and data processing tools"
+    },
+    {
+      "id": "devops",
+      "name": "DevOps & Infrastructure",
+      "description": "Templates for DevOps workflows and infrastructure management"
+    },
+    {
+      "id": "web",
+      "name": "Web Development",
+      "description": "Templates for modern web development frameworks"
+    },
+    {
+      "id": "mobile",
+      "name": "Mobile Development",
+      "description": "Templates for mobile app development"
+    }
+  ],
+  "templates": [
+    {
+      "id": "react-starter",
+      "name": "React + TypeScript Starter",
+      "description": "Modern React development environment with TypeScript, Tailwind CSS, and essential tools",
+      "category": "web",
+      "author": {
+        "name": "Ultra DevBox Team",
+        "email": "team@ultra-devbox.com",
+        "github": "ultra-devbox"
+      },
+      "version": "1.2.0",
+      "price": 0,
+      "tags": ["react", "typescript", "tailwind", "vite"],
+      "downloads": 1250,
+      "rating": 4.8,
+      "reviews": 42,
+      "featured": true,
+      "repository": "https://github.com/ultra-devbox/react-starter",
+      "devcontainer": {
+        "image": "mcr.microsoft.com/devcontainers/typescript-node:18",
+        "features": {
+          "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+          "ghcr.io/devcontainers/features/github-cli:1": {}
+        },
+        "postCreateCommand": "npm install && npm run dev",
+        "forwardPorts": [3000, 8080],
+        "customizations": {
+          "vscode": {
+            "extensions": [
+              "ms-vscode.vscode-typescript-next",
+              "bradlc.vscode-tailwindcss",
+              "esbenp.prettier-vscode"
+            ]
+          }
+        }
+      },
+      "resources": {
+        "cpu": "2",
+        "memory": "4Gi",
+        "disk": "10Gi"
+      },
+      "compatibility": {
+        "minBillingTier": "FREE",
+        "requiresDocker": false,
+        "requiresGPU": false
+      }
+    },
+    {
+      "id": "python-ml",
+      "name": "Python Machine Learning",
+      "description": "Complete Python ML environment with Jupyter, TensorFlow, PyTorch, and data science tools",
+      "category": "ai",
+      "author": {
+        "name": "Ultra DevBox Team",
+        "email": "team@ultra-devbox.com",
+        "github": "ultra-devbox"
+      },
+      "version": "1.5.0",
+      "price": 0,
+      "tags": ["python", "machine-learning", "jupyter", "tensorflow", "pytorch"],
+      "downloads": 890,
+      "rating": 4.9,
+      "reviews": 28,
+      "featured": true,
+      "repository": "https://github.com/ultra-devbox/python-ml",
+      "devcontainer": {
+        "image": "mcr.microsoft.com/devcontainers/python:3.11",
+        "features": {
+          "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+          "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.11"
+          }
+        },
+        "postCreateCommand": "pip install -r requirements.txt && jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root",
+        "forwardPorts": [8888, 6006],
+        "customizations": {
+          "vscode": {
+            "extensions": [
+              "ms-python.python",
+              "ms-toolsai.jupyter",
+              "ms-toolsai.vscode-jupyter-cell-tags"
+            ]
+          }
+        }
+      },
+      "resources": {
+        "cpu": "4",
+        "memory": "8Gi",
+        "disk": "20Gi"
+      },
+      "compatibility": {
+        "minBillingTier": "STARTER",
+        "requiresDocker": true,
+        "requiresGPU": true
+      }
+    },
+    {
+      "id": "microservices-node",
+      "name": "Node.js Microservices",
+      "description": "Complete microservices architecture with Node.js, Docker, Kubernetes, and service mesh",
+      "category": "development",
+      "author": {
+        "name": "Ultra DevBox Team",
+        "email": "team@ultra-devbox.com",
+        "github": "ultra-devbox"
+      },
+      "version": "2.1.0",
+      "price": 999,
+      "tags": ["nodejs", "microservices", "docker", "kubernetes", "istio"],
+      "downloads": 567,
+      "rating": 4.7,
+      "reviews": 15,
+      "featured": false,
+      "repository": "https://github.com/ultra-devbox/microservices-node",
+      "devcontainer": {
+        "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+        "features": {
+          "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+          "ghcr.io/devcontainers/features/kubectl:1": {},
+          "ghcr.io/devcontainers/features/helm:3": {}
+        },
+        "postCreateCommand": "npm install && docker-compose up -d",
+        "forwardPorts": [3000, 3001, 3002, 8080],
+        "customizations": {
+          "vscode": {
+            "extensions": [
+              "ms-vscode.vscode-docker",
+              "ms-kubernetes-tools.vscode-kubernetes-tools",
+              "ms-vscode.vscode-json"
+            ]
+          }
+        }
+      },
+      "resources": {
+        "cpu": "4",
+        "memory": "8Gi",
+        "disk": "30Gi"
+      },
+      "compatibility": {
+        "minBillingTier": "PRO",
+        "requiresDocker": true,
+        "requiresGPU": false
+      }
+    },
+    {
+      "id": "go-api",
+      "name": "Go API Service",
+      "description": "Production-ready Go API with Gin, GORM, PostgreSQL, Redis, and comprehensive testing",
+      "category": "development",
+      "author": {
+        "name": "Ultra DevBox Team",
+        "email": "team@ultra-devbox.com",
+        "github": "ultra-devbox"
+      },
+      "version": "1.3.0",
+      "price": 0,
+      "tags": ["go", "api", "gin", "gorm", "postgresql", "redis"],
+      "downloads": 423,
+      "rating": 4.6,
+      "reviews": 12,
+      "featured": false,
+      "repository": "https://github.com/ultra-devbox/go-api",
+      "devcontainer": {
+        "image": "mcr.microsoft.com/devcontainers/go:1.21",
+        "features": {
+          "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+          "ghcr.io/devcontainers/features/postgres:1": {},
+          "ghcr.io/devcontainers/features/redis:1": {}
+        },
+        "postCreateCommand": "go mod download && go run main.go",
+        "forwardPorts": [8080, 5432, 6379],
+        "customizations": {
+          "vscode": {
+            "extensions": [
+              "golang.go",
+              "ms-vscode.vscode-docker"
+            ]
+          }
+        }
+      },
+      "resources": {
+        "cpu": "2",
+        "memory": "4Gi",
+        "disk": "15Gi"
+      },
+      "compatibility": {
+        "minBillingTier": "STARTER",
+        "requiresDocker": true,
+        "requiresGPU": false
+      }
+    },
+    {
+      "id": "rust-game",
+      "name": "Rust Game Development",
+      "description": "Rust game development environment with Bevy engine, WASM support, and game assets pipeline",
+      "category": "development",
+      "author": {
+        "name": "GameDev Templates",
+        "email": "templates@gamedev.com",
+        "github": "gamedev-templates"
+      },
+      "version": "1.0.0",
+      "price": 1999,
+      "tags": ["rust", "game-development", "bevy", "wasm", "gamedev"],
+      "downloads": 156,
+      "rating": 4.9,
+      "reviews": 8,
+      "featured": false,
+      "repository": "https://github.com/gamedev-templates/rust-game",
+      "devcontainer": {
+        "image": "mcr.microsoft.com/devcontainers/rust:1.75",
+        "features": {
+          "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+        },
+        "postCreateCommand": "cargo build && cargo run",
+        "forwardPorts": [8000, 8080],
+        "customizations": {
+          "vscode": {
+            "extensions": [
+              "rust-lang.rust-analyzer",
+              "bevyworks.bevy-asset-browser"
+            ]
+          }
+        }
+      },
+      "resources": {
+        "cpu": "4",
+        "memory": "8Gi",
+        "disk": "25Gi"
+      },
+      "compatibility": {
+        "minBillingTier": "PRO",
+        "requiresDocker": false,
+        "requiresGPU": true
+      }
+    }
+  ],
+  "featured": [
+    "react-starter",
+    "python-ml"
+  ],
+  "popular": [
+    "react-starter",
+    "python-ml",
+    "microservices-node",
+    "go-api"
+  ],
+  "new": [
+    "rust-game"
+  ]
+}

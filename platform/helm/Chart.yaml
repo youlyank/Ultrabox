@@ -1,0 +1,31 @@
+apiVersion: v2
+name: ultra-devbox
+description: Ultra DevBox - The Replit + Bolt killer with real Docker-in-Docker
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://github.com/ultra-devbox/ultra-devbox
+sources:
+  - https://github.com/ultra-devbox/ultra-devbox
+maintainers:
+  - name: Ultra DevBox Team
+    email: team@ultra-devbox.com
+keywords:
+  - development
+  - docker
+  - ai
+  - workspace
+  - vscode
+  - ollama
+annotations:
+  category: Development
+  licenses: MIT
+dependencies:
+  - name: postgresql
+    version: 12.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

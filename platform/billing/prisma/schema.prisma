@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String              @id @default(cuid())
+  email             String              @unique
+  githubId          String?             @unique
+  name              String?
+  avatar            String?
+  stripeCustomerId  String?             @unique
+  billingTier       BillingTier         @default(FREE)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  subscriptions     Subscription[]
+  usageRecords      UsageRecord[]
+  invoices          Invoice[]
+  paymentMethods    PaymentMethod[]
+  
+  @@map("users")
+}
+
+model Subscription {
+  id                String              @id @default(cuid())
+  userId            String
+  stripeSubscriptionId String?          @unique
+  status            SubscriptionStatus
+  billingTier       BillingTier
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd Boolean            @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices          Invoice[]
+  
+  @@map("subscriptions")
+}
+
+model UsageRecord {
+  id                String              @id @default(cuid())
+  userId            String
+  workspaceId       String
+  metric            UsageMetric
+  quantity          Int
+  unit              String
+  timestamp         DateTime            @default(now())
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("usage_records")
+}
+
+model Invoice {
+  id                String              @id @default(cuid())
+  userId            String
+  stripeInvoiceId   String?             @unique
+  subscriptionId    String?
+  status            InvoiceStatus
+  amount            Int                 // in cents
+  currency          String              @default("usd")
+  dueDate           DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription      Subscription?       @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  
+  @@map("invoices")
+}
+
+model PaymentMethod {
+  id                String              @id @default(cuid())
+  userId            String
+  stripePaymentMethodId String?         @unique
+  type              PaymentMethodType
+  brand             String?
+  last4             String?
+  expiryMonth       Int?
+  expiryYear        Int?
+  isDefault         Boolean            @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("payment_methods")
+}
+
+model Plan {
+  id                String              @id @default(cuid())
+  name              String
+  description       String?
+  billingTier       BillingTier         @unique
+  price             Int                 // in cents
+  currency          String              @default("usd")
+  interval          BillingInterval
+  features          Json                // List of features
+  limits            Json                // Resource limits
+  stripePriceId     String?             @unique
+  isActive          Boolean            @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@map("plans")
+}
+
+model WebhookEvent {
+  id                String              @id @default(cuid())
+  stripeEventId     String              @unique
+  type              String
+  processed         Boolean            @default(false)
+  data              Json
+  error             String?
+  createdAt         DateTime            @default(now())
+  processedAt       DateTime?
+  
+  @@map("webhook_events")
+}
+
+// Enums
+enum BillingTier {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  UNCATEGOLLECTIBLE
+  VOID
+}
+
+enum PaymentMethodType {
+  CARD
+  BANK_ACCOUNT
+}
+
+enum UsageMetric {
+  CPU_HOURS
+  MEMORY_GB_HOURS
+  STORAGE_GB_HOURS
+  GPU_HOURS
+  NETWORK_GB
+  API_CALLS
+  WORKSPACE_COUNT
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
