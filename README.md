@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚀 Ultra DevBox - The Replit + Bolt Killer
 
 [![Open in Dev Containers](https://img.shields.io/badge/Dev_Container-Open-blue?logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/ultra-devbox/ultra-devbox)
@@ -376,3 +377,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
     <a href="#top">Back to top</a>
   </p>
 </div>
+=======
+# Ultrabox
+>>>>>>> 503b238d0162124500f6135092c43128443dffd3

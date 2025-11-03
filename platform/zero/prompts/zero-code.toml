@@ -1,0 +1,56 @@
+[zero_code]
+system = """
+You are Ultra-DevBox-Zero, an AI-powered zero-code application generator.
+You analyze user requirements and generate complete project structures.
+Return ONLY valid JSON with the following schema:
+
+{
+  "stack": "nextjs|go|rust|python",
+  "features": ["auth", "payments", "realtime", "database", "api", "frontend", "testing"],
+  "infra": "docker|k8s|serverless",
+  "db": "postgres|sqlite|distributed|mongodb",
+  "tests": "jest|pytest|go-test",
+  "project_name": "string",
+  "description": "string",
+  "files": [
+    {
+      "path": "string",
+      "content": "string",
+      "type": "file|directory"
+    }
+  ]
+}
+
+Guidelines:
+- Choose appropriate stack based on requirements
+- Include essential files for production-ready apps
+- Add configuration files, tests, and documentation
+- Ensure all generated code is syntactically correct
+- Include setup instructions and README
+"""
+
+[stack_analysis]
+nextjs = "Modern React framework with TypeScript, ideal for web applications with SSR/SSG"
+go = "High-performance backend services, microservices, and CLI tools"
+rust = "System programming, performance-critical applications, WebAssembly"
+python = "Data science, AI/ML, rapid prototyping, web backends"
+
+[feature_mapping]
+auth = "Authentication system with JWT/OAuth, user management, login/logout"
+payments = "Payment integration with Stripe, subscription management, billing"
+realtime = "WebSocket connections, live updates, real-time collaboration"
+database = "Database models, migrations, ORM integration, data validation"
+api = "RESTful API endpoints, GraphQL, API documentation, rate limiting"
+frontend = "React components, styling, routing, state management, responsive design"
+testing = "Unit tests, integration tests, E2E testing, test coverage"
+
+[infra_mapping]
+docker = "Docker containers, docker-compose, multi-stage builds, container orchestration"
+k8s = "Kubernetes deployments, services, ingress, autoscaling, config maps"
+serverless = "AWS Lambda, Vercel, Netlify functions, edge computing"
+
+[db_mapping]
+postgres = "PostgreSQL with migrations, indexes, relationships, connection pooling"
+sqlite = "SQLite for local development, simple applications, embedded databases"
+distributed = "CockroachDB, YugabyteDB, distributed SQL, global replication"
+mongodb = "MongoDB with schemas, aggregations, indexing, document validation"

@@ -1,0 +1,154 @@
+version: "3.9"
+
+services:
+  # Main Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_ZERO_API=http://localhost:8000
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - zero-api
+    networks:
+      - ultra-devbox-network
+    restart: unless-stopped
+
+  # Zero-Code Builder API
+  zero-api:
+    build:
+      context: ./platform/zero
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DATABASE_URL=postgresql://devuser:devpass@neon:5432/ultradevbox_zero
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LOG_LEVEL=info
+    volumes:
+      - ./platform/zero:/app
+      - zero_uploads:/tmp/uploads
+      - zero_projects:/tmp/projects
+    depends_on:
+      ollama:
+        condition: service_healthy
+      neon:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ultra-devbox-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database
+  neon:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ultradevbox_zero
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - neon_data:/var/lib/postgresql/data
+    networks:
+      - ultra-devbox-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d ultradevbox_zero"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ultra-devbox-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Ollama LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - ultra-devbox-network
+    restart: unless-stopped
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 5 &&
+        ollama pull codellama:13b-instruct &&
+        ollama pull starcoder:15b &&
+        ollama pull wizardcoder:15b &&
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Socket.IO Server (for real-time features)
+  socket-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.socket
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      - ./src/lib/socket.ts:/app/src/lib/socket.ts
+    depends_on:
+      - redis
+    networks:
+      - ultra-devbox-network
+    restart: unless-stopped
+
+networks:
+  ultra-devbox-network:
+    driver: bridge
+
+volumes:
+  neon_data:
+    driver: local
+  ollama_data:
+    driver: local
+  redis_data:
+    driver: local
+  zero_uploads:
+    driver: local
+  zero_projects:
+    driver: local

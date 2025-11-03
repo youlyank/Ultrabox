@@ -1,0 +1,235 @@
+version: "3.9"
+
+services:
+  # PostgreSQL Database
+  neon:
+    image: postgres:15-alpine
+    container_name: ultra-devbox-neon
+    environment:
+      POSTGRES_DB: ultradevbox_zero
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - neon_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - zero-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d ultradevbox_zero"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Realtime Server (Supabase Realtime alternative)
+  realtime:
+    image: supabase/realtime:latest
+    container_name: ultra-devbox-realtime
+    environment:
+      DB_HOST: neon
+      DB_PORT: 5432
+      DB_NAME: ultradevbox_zero
+      DB_USER: devuser
+      DB_PASSWORD: devpass
+      PORT: 4000
+      SECRET_KEY_BASE: your-secret-key-base-change-in-production
+      API_JWT_SECRET: your-jwt-secret-change-in-production
+    ports:
+      - "4000:4000"
+    depends_on:
+      neon:
+        condition: service_healthy
+    networks:
+      - zero-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Ollama LLM Service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ultra-devbox-ollama-zero
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - zero-network
+    restart: unless-stopped
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 5 &&
+        ollama pull codellama:13b-instruct &&
+        ollama pull starcoder:15b &&
+        ollama pull wizardcoder:15b &&
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Zero-Code Builder API
+  zero-api:
+    build:
+      context: ../platform/zero
+      dockerfile: Dockerfile
+    container_name: ultra-devbox-zero-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DATABASE_URL=postgresql://devuser:devpass@neon:5432/ultradevbox_zero
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LOG_LEVEL=info
+    volumes:
+      - ../platform/zero:/app
+      - zero_uploads:/tmp/uploads
+      - zero_projects:/tmp/projects
+    depends_on:
+      ollama:
+        condition: service_healthy
+      neon:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zero-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ultra-devbox-redis-zero
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - zero-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ultra-devbox-nginx-zero
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - zero-api
+      - ollama
+    networks:
+      - zero-network
+    restart: unless-stopped
+
+  # MinIO Object Storage (for project files)
+  minio:
+    image: minio/minio:latest
+    container_name: ultra-devbox-minio-zero
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    networks:
+      - zero-network
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Monitoring (Prometheus)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ultra-devbox-prometheus-zero
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - zero-network
+    restart: unless-stopped
+
+  # Monitoring (Grafana)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ultra-devbox-grafana-zero
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - zero-network
+    restart: unless-stopped
+
+networks:
+  zero-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  neon_data:
+    driver: local
+  ollama_data:
+    driver: local
+  redis_data:
+    driver: local
+  zero_uploads:
+    driver: local
+  zero_projects:
+    driver: local
+  minio_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
